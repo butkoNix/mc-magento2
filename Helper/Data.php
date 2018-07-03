@@ -620,10 +620,28 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             if ($customer->getData('email') == $email) {
                 $mergeVars = $this->getMergeVars($customer,$storeId);
             }
+            $mergeVars = $this->getMergeVarsWebsiteNameByNotLoggedCustomer($storeId, $mergeVars);
         }catch(\Exception $e) {
             $this->log($e->getMessage());
         }
         return $mergeVars;
+    }
+
+    public function getMergeVarsWebsiteNameByNotLoggedCustomer($storeId, $mergeVars = [])
+    {
+        $mapFields = $this->getMapFields($storeId);
+        $value = null;
+        if (is_array($mapFields)) {
+            foreach ($mapFields as $map) {
+                if ($map['customer_field'] == 'website_id') {
+                    $value = $this->_storeManager->getWebsite($storeId)->getName();
+                }
+                if ($value && !isset($mergeVars[$map['mailchimp']])) {
+                    $mergeVars[$map['mailchimp']] = $value;
+                }
+            }
+        }
+        return (!empty($mergeVars)) ? $mergeVars : null;
     }
 
     /**
@@ -732,7 +750,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     }
     public function loadStores()
     {
-        
+
         $mcUserName = [];
         $connection = $this->_mailChimpStores->getResource()->getConnection();
         $tableName = $this->_mailChimpStores->getResource()->getMainTable();
